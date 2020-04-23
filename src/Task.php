@@ -169,17 +169,20 @@ class Task
 
     private function sendAndRecv(Package $package,int $id,float $timeout = null)
     {
-        if($timeout === null){
-            $timeout = $this->config->getTimeout();
-        }
-        $client = new UnixClient($this->idToUnixName($id));
-        $client->send(Protocol::pack(\Opis\Closure\serialize($package)));
-        $ret = $client->recv($timeout);
-        $client->close();
-        if (!empty($ret)) {
-            return \Opis\Closure\unserialize(Protocol::unpack($ret));
-        }else{
-            return null;
-        }
+        go(function() use ($package, $id, $timeout) {
+            if ($timeout === null) {
+                $timeout = $this->config->getTimeout();
+            }
+
+            $client = new UnixClient($this->idToUnixName($id));
+            $client->send(Protocol::pack(\Opis\Closure\serialize($package)));
+            $ret = $client->recv($timeout);
+            $client->close();
+            if (!empty($ret)) {
+                return \Opis\Closure\unserialize(Protocol::unpack($ret));
+            } else {
+                return null;
+            }
+        });
     }
 }
